@@ -1,1 +1,63 @@
-h
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bootloader</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: 'OCR A Extended', monospace;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        #error-message {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+        }
+        #image-container {
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+    </style>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=OCR+A+Extended&display=swap">
+</head>
+<body>
+    <div id="error-message">Error: 0002</div>
+    <div id="image-container">
+        <img src="image.jpg" alt="Bootloader Image" id="bootloader-image">
+    </div>
+
+    <script>
+        const imagePath = 'image.jpg'; // Path to the image you want to display
+        const image = document.getElementById('bootloader-image');
+        const imageContainer = document.getElementById('image-container');
+        const errorMessage = document.getElementById('error-message');
+
+        // Check if the image exists
+        const img = new Image();
+        img.onload = function() {
+            imageContainer.style.display = 'flex'; // Show image if it loads
+            image.src = imagePath;
+            errorMessage.style.display = 'none'; // Hide error message if image exists
+        };
+        img.onerror = function() {
+            imageContainer.style.display = 'none'; // Hide image if it doesn't load
+        };
+
+        img.src = imagePath; // Trigger image load check
+    </script>
+</body>
+</html>

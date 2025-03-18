@@ -3,61 +3,316 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bootloader</title>
+    <title>Random Boot Sound Generator</title>
     <style>
         body {
-            background-color: black;
-            color: white;
-            font-family: 'OCR A Extended', monospace;
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-family: Arial, sans-serif;
             text-align: center;
+            margin: 20px;
         }
-        #error-message {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 24px;
+        button, input, select {
+            font-size: 16px;
+            margin: 5px;
+            padding: 8px;
         }
-        #image-container {
+        #historyPage {
             display: none;
-            justify-content: center;
-            align-items: center;
         }
-        img {
-            max-width: 100%;
-            max-height: 100%;
+        .historyItem {
+            border: 1px solid black;
+            padding: 10px;
+            margin: 5px;
         }
     </style>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=OCR+A+Extended&display=swap">
 </head>
 <body>
-    <div id="error-message">Error: 0002</div>
-    <div id="image-container">
-        <img src="image.jpg" alt="Bootloader Image" id="bootloader-image">
+
+    <div id="generatorPage">
+        <h1>Random Boot Sound Generator</h1>
+        <label for="duration">Duration (seconds): </label>
+        <input type="number" id="duration" min="1" max="10" value="5">
+        <br>
+        <label for="waveform">Select Waveform: </label>
+        <select id="waveform">
+            <option value="sine">Sine</option>
+            <option value="triangle">Triangle</option>
+            <option value="sawtooth">Sawtooth</option>
+            <option value="square">Square</option>
+        </select>
+        <br>
+        <label for="volume">Volume (0.1 to 1): </label>
+        <input type="number" id="volume" min="0.1" max="1" step="0.1" value="0.3">
+        <br>
+        <label for="bitDepth">Bit Depth: </label>
+        <select id="bitDepth">
+            <option value="1">1-bit</option>
+            <option value="8">8-bit</option>
+            <option value="16">16-bit</option>
+        </select>
+        <br>
+        <button onclick="generateSound()">Generate Boot Sound</button>
+        <button onclick="downloadSound()">Download</button>
+        <button onclick="showHistory()">View History</button>
+    </div>
+
+    <div id="historyPage">
+        <h1>Sound History</h1>
+        <div id="historyList"></div>
+        <br>
+        <button onclick="goBack()">Back to Generator</button>
     </div>
 
     <script>
-        const imagePath = 'image.jpg'; // Path to the image you want to display
-        const image = document.getElementById('bootloader-image');
-        const imageContainer = document.getElementById('image-container');
-        const errorMessage = document.getElementById('error-message');
+        let audioCtx;
+        let audioBuffer = [];
+        let history = [];
 
-        // Check if the image exists
-        const img = new Image();
-        img.onload = function() {
-            imageContainer.style.display = 'flex'; // Show image if it loads
-            image.src = imagePath;
-            errorMessage.style.display = 'none'; // Hide error message if image exists
-        };
-        img.onerror = function() {
-            imageContainer.style.display = 'none'; // Hide image if it doesn't load
-        };
+        function generateSound() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const duration = parseInt(document.getElementById('duration').value) || 5;
+            const waveform = document.getElementById('waveform').value;
+            const volume = parseFloat(document.getElementById('volume').value) || 0.3;
+            const bitDepth = parseInt(document.getElementById('bitDepth').value) || 16;
+            const endTime = audioCtx.currentTime + duration;
+            audioBuffer = [];
 
-        img.src = imagePath; // Trigger image load check
+            function playBootTones(time) {
+                if (time >= endTime) return;
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                const baseFreq = 150 + Math.random() * 300;
+                const freqVariation = Math.random() * 100;
+                const frequency = baseFreq + (freqVariation * (time - audioCtx.currentTime));
+
+                osc.frequency.value = frequency;
+                osc.type = waveform;
+                gain.gain.value = volume;
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const noteDuration = Math.random() * 0.4 + 0.1;
+                osc.start(time);
+                osc.stop(time + noteDuration);
+
+                audioBuffer.push({ frequency, duration: noteDuration, waveform: osc.type });
+
+                playBootTones(time + noteDuration * (0.5 + Math.random() * 1.5));
+            }
+
+            playBootTones(audioCtx.currentTime);
+            saveToHistory(waveform, volume, bitDepth);
+        }
+
+        function saveToHistory(waveform, volume, bitDepth) {
+            const soundDescription = {
+                date: new Date().toISOString(),
+                waveform: waveform,
+                volume: volume,
+                bitDepth: bitDepth,
+                audioBuffer: [...audioBuffer]
+            };
+            history.push(soundDescription);
+        }
+
+        function downloadSound() {
+            if (audioBuffer.length === 0) {
+                alert("Generate a sound first!");
+                return;
+            }
+
+            const sampleRate = 44100;
+            const totalSamples = audioBuffer.reduce((sum, note) => sum + (note.duration * sampleRate), 0);
+            const buffer = new Float32Array(totalSamples);
+            let offset = 0;
+
+            audioBuffer.forEach(note => {
+                const freq = note.frequency;
+                const samples = note.duration * sampleRate;
+
+                for (let i = 0; i < samples; i++) {
+                    buffer[offset + i] = generateWaveformSample(note.waveform, freq, i / sampleRate);
+                }
+
+                offset += samples;
+            });
+
+            const timestamp = new Date().toISOString().replace(/[:\-]/g, '').slice(0, 15);
+            const audioBlob = new Blob([new DataView(float32ToWav(buffer, sampleRate, parseInt(document.getElementById('bitDepth').value)))], { type: "audio/wav" });
+            const url = URL.createObjectURL(audioBlob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `random_boot_sound_${timestamp}.wav`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function generateWaveformSample(waveform, frequency, time) {
+            let sample = 0;
+
+            switch (waveform) {
+                case "sine":
+                    sample = Math.sin(2 * Math.PI * frequency * time);
+                    break;
+                case "triangle":
+                    sample = 2 * Math.abs(2 * (time * frequency - Math.floor(time * frequency + 0.5))) - 1;
+                    break;
+                case "sawtooth":
+                    sample = 2 * (time * frequency - Math.floor(time * frequency + 0.5));
+                    break;
+                case "square":
+                    sample = (Math.sin(2 * Math.PI * frequency * time) > 0) ? 1 : -1;
+                    break;
+            }
+
+            return applyBitDepth(sample);
+        }
+
+        function applyBitDepth(sample) {
+            const bitDepth = parseInt(document.getElementById('bitDepth').value);
+
+            if (bitDepth === 1) {
+                // 1-bit sound (square wave)
+                return sample > 0 ? 1 : -1;
+            } else if (bitDepth === 8) {
+                // 8-bit sound (lo-fi)
+                return Math.round(sample * 127); // Scale to 8-bit range
+            } else if (bitDepth === 16) {
+                // 16-bit sound (high quality)
+                return Math.round(sample * 32767); // Scale to 16-bit range
+            }
+            return sample;
+        }
+
+        function float32ToWav(buffer, sampleRate, bitDepth) {
+            const numSamples = buffer.length;
+            const bufferLength = numSamples * (bitDepth / 8) + 44;
+            const view = new DataView(new ArrayBuffer(bufferLength));
+
+            function writeString(offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+
+            writeString(0, "RIFF");
+            view.setUint32(4, 36 + numSamples * (bitDepth / 8), true);
+            writeString(8, "WAVE");
+            writeString(12, "fmt ");
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * (bitDepth / 8), true);
+            view.setUint16(32, (bitDepth / 8), true);
+            view.setUint16(34, bitDepth, true);
+            writeString(36, "data");
+            view.setUint32(40, numSamples * (bitDepth / 8), true);
+
+            let offset = 44;
+            for (let i = 0; i < numSamples; i++) {
+                let sample = buffer[i];
+                if (bitDepth === 1) {
+                    // 1-bit encoding: use either 0 or 255 (binary sound)
+                    view.setUint8(offset, sample === 1 ? 255 : 0, true);
+                    offset += 1;
+                } else if (bitDepth === 8) {
+                    // 8-bit encoding: range from -128 to 127
+                    view.setInt8(offset, sample, true);
+                    offset += 1;
+                } else if (bitDepth === 16) {
+                    // 16-bit encoding: range from -32768 to 32767
+                    view.setInt16(offset, sample, true);
+                    offset += 2;
+                }
+            }
+
+            return view.buffer;
+        }
+
+        function showHistory() {
+            document.getElementById('generatorPage').style.display = 'none';
+            document.getElementById('historyPage').style.display = 'block';
+            updateHistory();
+        }
+
+        function goBack() {
+            document.getElementById('generatorPage').style.display = 'block';
+            document.getElementById('historyPage').style.display = 'none';
+        }
+
+        function updateHistory() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = "";
+
+            history.forEach((sound, index) => {
+                const div = document.createElement('div');
+                div.classList.add('historyItem');
+                div.innerHTML = `
+                    <strong>Boot Sound ${index + 1}</strong><br>
+                    Waveform: ${sound.waveform}<br>
+                    Volume: ${sound.volume}<br>
+                    Bit Depth: ${sound.bitDepth}-bit<br>
+                    Date: ${sound.date}<br>
+                    <button onclick="playHistory(${index})">Play</button>
+                    <button onclick="downloadHistory(${index})">Download</button>
+                `;
+                historyList.appendChild(div);
+            });
+        }
+
+        function playHistory(index) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const sound = history[index].audioBuffer;
+
+            sound.forEach(note => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.frequency.value = note.frequency;
+                osc.type = note.waveform;
+                gain.gain.value = 0.3;
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const startTime = audioCtx.currentTime;
+                osc.start(startTime);
+                osc.stop(startTime + note.duration);
+            });
+        }
+
+        function downloadHistory(index) {
+            const sound = history[index].audioBuffer;
+            const sampleRate = 44100;
+            const totalSamples = sound.reduce((sum, note) => sum + (note.duration * sampleRate), 0);
+            const buffer = new Float32Array(totalSamples);
+            let offset = 0;
+
+            sound.forEach(note => {
+                const freq = note.frequency;
+                const samples = note.duration * sampleRate;
+
+                for (let i = 0; i < samples; i++) {
+                    buffer[offset + i] = generateWaveformSample(note.waveform, freq, i / sampleRate);
+                }
+
+                offset += samples;
+            });
+
+            const timestamp = new Date().toISOString().replace(/[:\-]/g, '').slice(0, 15);
+            const audioBlob = new Blob([new DataView(float32ToWav(buffer, sampleRate, parseInt(history[index].bitDepth)))], { type: "audio/wav" });
+            const url = URL.createObjectURL(audioBlob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `random_boot_sound_history_${timestamp}.wav`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
     </script>
 </body>
 </html>

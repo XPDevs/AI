@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eating Disorder Self Check</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f7f7f7;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .progress-bar {
+      height: 20px;
+      background-color: #ccc;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .progress {
+      height: 100%;
+      background-color: #007BFF;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .question {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .question p, .intro p .info p {
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+
+    .intro, .info {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin: 8px 0;
+    }
+    button {
+      display: block;
+      margin: 20px auto 0;
+      padding: 12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: #007BFF;
+      color: white;
+    }
+    #result {
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 30px;
+    }
+    .disclaimer {
+      font-size: 14px;
+      color: #555;
+      margin-top: 30px;
+      text-align: center;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: space-between;
+    }
+    .button-container button {
+      width: 48%;
+    }
+
+    /* Warning Box Styling */
+.warning-box {
+  display: none;
+  background-color: #ffffcc;
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  padding: 15px;
+  margin-top: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  animation: slideUp 0.4s ease-out, slideDown 0.4s ease-in 4.6s forwards;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+  </style>
+</head>
+<body>
+  <div class="intro" id="mainPage">
+    <h1>Eating Disorder Self Check</h1>
+    <p>This program asks 50 questions to check for eating disorder signs.</p>
+    <p>If your risk score is:</p>
+    <p><strong>Over 40%</strong>: You may show signs of Anorexia or Bulimia.</p>
+    <p><strong>Over 30% for both</strong>: Possible mix of both.</p>
+    <p><strong>Over 30% general</strong>: Be mindful of your habits.</p>
+    <p><strong>Below 30%</strong>: No strong signs.</p>
+    <p>This isn't a diagnosis—see a professional if you're concerned.</p>
+    <div class="disclaimer">All information is below</div>
+    <button onclick="showInfo()">Read Info</button>
+    <button onclick="startTest()">Start Test</button>
+  </div>
+
+  <div class="info" id="infoPage" style="display:none;">
+    <h2>Disclaimer and Info</h2>
+    <p><strong>Important:</strong> This tool is not a diagnosis and should not replace professional medical advice. If you're struggling or unsure, please consult a doctor, therapist, or mental health professional.</p>
+    <p><strong>Warning:</strong> Some questions may be triggering or emotionally uncomfortable. You may stop at any time.</p>
+    <div class="disclaimer">Version 1.0 <br>This app has never shared or stored your data. It never will. All answers are processed locally and discarded after the test.</div>
+    <button onclick="backToMain()">Back</button>
+  </div>
+
+  <div class="progress-bar" id="progressBar" style="display:none;">
+    <div class="progress" id="progress"></div>
+  </div>
+  <div class="question" id="questionBox" style="display:none;">
+    <p id="questionText"></p>
+    <form id="questionForm">
+      <label><input type="radio" name="answer" value="0"> Never</label>
+      <label><input type="radio" name="answer" value="1"> Rarely</label>
+      <label><input type="radio" name="answer" value="2"> Sometimes</label>
+      <label><input type="radio" name="answer" value="5"> Often</label>
+      <label><input type="radio" name="answer" value="2"> Always</label>
+      
+      <div class="button-container">
+        <button type="button" onclick="prevQuestion()">Previous</button>
+        <button type="submit">Next</button>
+      </div>
+    </form>
+  </div>
+  <div id="result"></div>
+
+ <!-- Warning Box -->
+<div id="errorWarning" class="warning-box">
+  Please choose an answer before proceeding!
+</div>
+
+  <script>
+    const questions = [
+      "Do you skip meals regularly?", "Do you feel guilty after eating?",
+      "Do you count calories obsessively?", "Do you often feel out of control when eating?",
+      "Do you eat in secret?", "Do you make yourself vomit after eating?",
+      "Do you avoid eating in front of others?", "Do you use laxatives or diet pills to lose weight?",
+      "Do you exercise excessively to burn off food?", "Do you weigh yourself more than once a day?",
+      "Do you feel fat even when others say you’re not?", "Do you fast to lose weight?",
+      "Do you feel anxious before or after eating?", "Do you skip meals to “make up” for eating too much?",
+      "Do you feel that food controls your life?", "Do you eat large amounts of food in short periods?",
+      "Do you ever feel ashamed after eating?", "Do you avoid certain foods because they make you feel “bad”?",
+      "Do you think about food constantly?", "Do you eat to cope with stress or emotions?",
+      "Do you feel pressure to be thin?", "Do you compare your body to others constantly?",
+      "Do you believe being thin will solve your problems?", "Do you eat less than 1,000 calories a day?",
+      "Do you avoid social events involving food?", "Do you feel panic if you can't exercise?",
+      "Do you restrict food after overeating?", "Do you track every single thing you eat?",
+      "Do you feel more in control when you don't eat?", "Do you binge eat even when not hungry?",
+      "Do you avoid mirrors because of body image?", "Do you feel your self-worth is tied to your weight?",
+      "Do you hide your eating habits from others?", "Do you follow extreme diets?",
+      "Do you feel physically weak from not eating?", "Do you drink excessive water to suppress hunger?",
+      "Do you check your body in the mirror often?", "Do you feel disgusted with yourself after eating?",
+      "Do you have strict rules about what and when you eat?", "Do you avoid high-calorie or high-fat foods completely?",
+      "Do you lie about how much or what you’ve eaten?", "Do you chew food but then spit it out?",
+      "Do you skip meals even when you’re hungry?", "Do you feel like you’ve failed after eating a “bad” food?",
+      "Do you plan your entire day around meals or food?", "Do you experience dizziness from not eating enough?",
+      "Do you avoid food to feel in control?", "Do you punish yourself for eating?",
+      "Do you believe others judge you based on your body?", "Do you think you have a problem with eating?"
+    ];
+
+    const questionTypes = [
+      "an", "bn", "an", "bn", "bn", "bn", "an", "bn", "bn", "an",
+      "an", "an", "both", "an", "both", "bn", "bn", "an", "both", "bn",
+      "both", "both", "both", "an", "an", "both", "an", "an", "an", "bn",
+      "both", "both", "bn", "an", "an", "an", "an", "bn", "both", "an",
+      "bn", "bn", "an", "bn", "both", "an", "an", "bn", "both", "both"
+    ];
+
+    let currentQuestion = 0;
+    let riskScore = 0;
+    let anorexiaScore = 0;
+    let bulimiaScore = 0;
+    const riskAnswers = [2, 3]; // Often and Always
+    const selectedAnswers = new Array(questions.length).fill(null);
+    const questionText = document.getElementById("questionText");
+    const questionForm = document.getElementById("questionForm");
+    const questionBox = document.getElementById("questionBox");
+    const resultBox = document.getElementById("result");
+    const progress = document.getElementById("progress");
+    const progressBar = document.getElementById("progressBar");
+    const mainPage = document.getElementById("mainPage");
+
+    const errorModal = document.getElementById("errorModal");
+
+    function showInfo() {
+      document.getElementById("mainPage").style.display = "none";
+      document.getElementById("infoPage").style.display = "block";
+    }
+
+    function backToMain() {
+      document.getElementById("infoPage").style.display = "none";
+      document.getElementById("mainPage").style.display = "block";
+    }
+
+    function showQuestion(index) {
+      questionText.textContent = `${index + 1}. ${questions[index]}`;
+      questionForm.reset();
+      const previous = selectedAnswers[index];
+      if (previous !== null) {
+        document.querySelector(`input[name="answer"][value="${previous}"]`).checked = true;
+      }
+      progress.style.width = `${(index / questions.length) * 100}%`;
+    }
+
+    function startTest() {
+      currentQuestion = 0;
+      riskScore = 0;
+      anorexiaScore = 0;
+      bulimiaScore = 0;
+      selectedAnswers.fill(null);
+      mainPage.style.display = "none";
+      questionBox.style.display = "block";
+      progressBar.style.display = "block";
+      showQuestion(currentQuestion);
+    }
+
+    function prevQuestion() {
+      if (currentQuestion > 0) {
+        currentQuestion--;
+        showQuestion(currentQuestion);
+      }
+    }
+
+    function showModal() {
+  const warningBox = document.getElementById("errorWarning");
+  warningBox.style.display = "block";
+  warningBox.style.animation = "slideUp 0.4s ease-out, slideDown 0.4s ease-in 4.6s forwards";
+
+  // Hide it after animation completes
+  setTimeout(() => {
+    warningBox.style.display = "none";
+  }, 5000);
+}
+
+    questionForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const answer = parseInt(document.querySelector('input[name="answer"]:checked')?.value);
+      if (isNaN(answer)) {
+        showModal();
+        return;
+      }
+
+      selectedAnswers[currentQuestion] = answer;
+
+      if (riskAnswers.includes(answer)) {
+        riskScore++;
+        const type = questionTypes[currentQuestion];
+        if (type === "an") anorexiaScore++;
+        else if (type === "bn") bulimiaScore++;
+        else if (type === "both") {
+          anorexiaScore++;
+          bulimiaScore++;
+        }
+      }
+
+      currentQuestion++;
+      if (currentQuestion < questions.length) {
+        showQuestion(currentQuestion);
+      } else {
+        showResult();
+      }
+    });
+
+    function showResult() {
+      questionBox.style.display = "none";
+      progressBar.style.display = "none";
+      const riskPercentage = Math.round((riskScore / questions.length) * 100);
+      const anorexiaPercentage = Math.round((anorexiaScore / questions.length) * 100);
+      const bulimiaPercentage = Math.round((bulimiaScore / questions.length) * 100);
+
+      let message = `General Risk Score: ${riskPercentage}%<br>`;
+      message += `Anorexia Score: ${anorexiaPercentage}%<br>`;
+      message += `Bulimia Score: ${bulimiaPercentage}%<br><br>`;
+
+      if (anorexiaPercentage > 40 || bulimiaPercentage > 40) {
+        message += "You may show signs of Anorexia or Bulimia. Please consider talking to a professional.";
+      } else if (anorexiaPercentage > 30 && bulimiaPercentage > 30) {
+        message += "You may have a mix of both anorexic and bulimic tendencies.";
+      } else if (riskPercentage > 30) {
+        message += "You may be at risk. Be mindful of your eating habits.";
+      } else {
+        message += "Your answers do not indicate strong signs of an eating disorder.";
+      }
+
+      resultBox.innerHTML = message;
+    }
+  </script>
+</body>
+</html>

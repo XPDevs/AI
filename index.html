@@ -26,15 +26,17 @@
             background-color: #0056b3;
         }
 
-        .sidebar {
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            display: none; /* Initially hidden */
-        }
+.sidebar {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-right: 20px;
+    display: none; /* Initially hidden */
+    width: 250px; /* Set a width for the sidebar */
+}
+
 
         .chat-container {
             background-color: #fff;
@@ -91,10 +93,12 @@
 </head>
 <body>
     <button class="toggle-sidebar-button" onclick="toggleSidebar()">☰ Open Sidebar</button>
-    <div class="sidebar" id="sidebar">
-        <h3>Previous Chats</h3>
-        <div id="history"></div>
-        <button class="history-button" onclick="clearHistory()">Clear History</button>
+   <div class="sidebar" id="sidebar">
+    <h3>Previous Chats</h3>
+    <div id="history"></div>
+    <button class="history-button" onclick="clearHistory()">Clear History</button>
+</div>
+
     </div>
     <div class="chat-container">
         <div id="chat-box"></div>

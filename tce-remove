@@ -1,0 +1,42 @@
+#!/bin/ash
+#
+# tce-remove - Simple TCZ uninstaller for Tiny Core Linux
+# Version: 1.0.0
+# Author: James Turner (XPDevs)
+# License: MIT
+# Created: 2025-05-11
+# Description: Removes a specified .tcz extension from /tce/optional and removes it from onboot.lst.
+#
+
+# Function to display usage info
+show_help() {
+    echo "tce-remove v1.0.0 by XPDevs"
+    echo "Usage: ./tce-remove <appname>"
+    echo "Removes <appname>.tcz from /tce/optional and /tce/onboot.lst"
+}
+
+# Check if argument is given
+if [ -z "$1" ]; then
+    show_help
+    exit 1
+fi
+
+APPNAME="$1"
+
+# Remove the .tcz extension from optional
+if [ -f "/tce/optional/${APPNAME}.tcz" ]; then
+    echo "Removing /tce/optional/${APPNAME}.tcz"
+    sudo rm "/tce/optional/${APPNAME}.tcz"
+else
+    echo "/tce/optional/${APPNAME}.tcz not found"
+fi
+
+# Remove entry from onboot.lst
+if grep -q "${APPNAME}.tcz" /tce/onboot.lst; then
+    echo "Removing ${APPNAME}.tcz from /tce/onboot.lst"
+    sudo sed -i "/${APPNAME}.tcz/d" /tce/onboot.lst
+else
+    echo "${APPNAME}.tcz not listed in /tce/onboot.lst"
+fi
+
+echo "Done."
